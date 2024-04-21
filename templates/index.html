@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF CV Parser Demo</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#upload-form').submit(function(event) {
+                event.preventDefault();
+                var formData = new FormData(this);
+                $('#loading').show();
+                $('#upload-btn').prop('disabled', true);
+                $.ajax({
+                    url: '/upload',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#loading').hide();
+                        $('#upload-btn').prop('disabled', false);
+                      if (response.summary) {
+                      $('#summary').html('<pre><code>' + response.summary +                               '</code></pre>');
+                        } else if (response.error) {
+                            $('#error').text(response.error);
+                        }
+                    },
+                    error: function() {
+                        $('#loading').hide();
+                        $('#upload-btn').prop('disabled', false);
+                        $('#error').text('An error occurred during the upload.');
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="prose">
+        <h1>PDF CV Parser Demo</h1>
+        <h2>Use `/upload` for api endpoint.</h2>
+        <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://3f5f9f5b-df4a-4848-9cad-9b8564532ab7-00-2oxjjqwacwf2z.janeway.replit.dev/upload`</h3>
+        <br>
+        <hr>
+        <br>
+        <div id="error" class="text-red-500"></div>
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <input type="file" name="pdf" accept=".pdf" class="mb-4">
+            <button type="submit" id="upload-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Upload & Parse
+            </button>
+        </form>
+        <div id="loading" class="mt-4" style="display: none;">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading...</span>
+        </div>
+        <h2 class="mt-8">Output (should be in JSON):</h2>
+        <div id="summary"></div>
+    </div>
+</body>
+</html>

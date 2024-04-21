@@ -1,0 +1,61 @@
+Do not make up data if it isn't specified in the CV
+Extract data from this CV document and reply in json in a format like this:
+```
+{
+    "last_name": "John",
+    "first_name": "Doe",
+    "phone": "+49 176 12345678",
+    "email": "j.doe@example.com",
+    "address": {
+        "street": "Musterstraße 123",
+        "zip": "12345",
+        "city": "Musterstadt",
+        "country": "Deutschland"
+    },
+    "human_languages": {
+        "german": "Native",
+        "english": "Fluent"
+    },
+    "skills": {
+        "top_three_skills": [
+            "Python",
+            "Java",
+            "C++"
+        ],
+        "other": [
+            "SQL",
+            "HTML",
+            "CSS",
+            "JavaScript"
+        ]
+    },
+    "education": [
+        {
+            "degree": "Bachelor of Science",
+            "field_of_study": "Computer Science",
+            "school": "Musteruniversität",
+            "start_date": "2015-10-01",
+            "end_date": "2019-09-30"
+        }
+    ],
+    "work_experience": [
+        {
+            "title": "Software Developer",
+            "company": "Musterfirma",
+            "start_date": "2019-10-01",
+            "end_date": "2020-09-30",
+            "current": false,
+            "description": "Developed software"
+        },
+        {
+            "title": "Software Developer",
+            "company": "Musterfirma",
+            "start_date": "2020-10-01",
+            "end_date": "",
+            "current": true,
+            "description": "Developed software"
+        }
+    ]
+}
+```
+Don't write back anything else, just the json codeblock.
