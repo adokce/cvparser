@@ -6,7 +6,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
+from langchain_community.chat_models import ChatOpenAI
 
 app = Flask(__name__)
 
@@ -15,11 +15,14 @@ app = Flask(__name__)
 
 # Set up the embedding model and vector store
 embeddings = OpenAIEmbeddings()
-vector_store = Chroma(embedding_function=embeddings, persist_directory=".")
+# vector_store = Chroma(embedding_function=embeddings, persist_directory=".")
 
 # Read the magic prompt from the file
 with open("prompt.txt", "r") as file:
   magic_prompt = file.read().strip()
+
+# Set the maximum file size (in bytes)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 
 @app.route('/', methods=['GET'])
@@ -35,6 +38,8 @@ def upload_and_process_pdf():
   if file.filename == '':
     return jsonify({"error": "No file selected"}), 400
 
+  selected_model = request.form.get('model', 'gpt-3.5-turbo')
+
   if file and file.filename.endswith('.pdf'):
     # Save the uploaded file to a temporary location
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -49,16 +54,16 @@ def upload_and_process_pdf():
                                                      chunk_overlap=0)
       texts = text_splitter.split_documents(documents)
 
-      # Create a vector store from the PDF content
-      vector_store.add_documents(texts)
+      # Create a new vector store for each request
+      vector_store = Chroma.from_documents(texts, embeddings)
 
-      # Set up the question-answering chain
-      qa = RetrievalQA.from_chain_type(llm=OpenAI(),
+      # Set up the question-answering chain with the selected model
+      qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model=selected_model),
                                        chain_type="stuff",
                                        retriever=vector_store.as_retriever())
 
       # Ask the question and get the answer
-      answer = qa.run(magic_prompt)
+      answer = qa.invoke(magic_prompt)
 
       return jsonify({"summary": answer}), 200
     except Exception as e:
