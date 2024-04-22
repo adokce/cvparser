@@ -6,22 +6,25 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-          var answers = [];
+            var answers = [];
             $('#upload-form').submit(function(event) {
                 event.preventDefault();
                 var formData = new FormData(this);
-              
+
                 var selectedModel = $('#model-select').val();
                 formData.append('model', selectedModel);
 
-              var filename = '';
-              for (var formEntry of formData.entries()) {
-                  if (formEntry[0] === 'pdf') {
-                      filename = formEntry[1].name;
-                      break;
-                  }
-              }
-              
+                var magicPrompt = $('#magic-prompt').val();
+                formData.append('magic_prompt', magicPrompt);
+
+                var filename = '';
+                for (var formEntry of formData.entries()) {
+                    if (formEntry[0] === 'pdf') {
+                        filename = formEntry[1].name;
+                        break;
+                    }
+                }
+
                 $('#loading').show();
                 $('#upload-btn').prop('disabled', true);
                 $.ajax({
@@ -30,21 +33,21 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                  success: function(response) {
-                    $('#loading').hide();
-                    $('#upload-btn').prop('disabled', false);
-                      if (response.summary && response.summary.result) {
-                          answers.push({
-
-                            filename,
-                              summary: response.summary.result
-                          });
-                          displayAnswers();
-                      } else if (response.error) {
-                        $('#error').text(response.error);
-
-                      }
-                  },
+                    success: function(response) {
+                        $('#loading').hide();
+                        $('#upload-btn').prop('disabled', false);
+                        if (response.summary && response.summary.result) {
+                          console.log({response})
+                            answers.push({
+                                filename,
+                                summary: response.summary.result,
+                                model: selectedModel 
+                            });
+                            displayAnswers();
+                        } else if (response.error) {
+                            $('#error').text(response.error);
+                        }
+                    },
                     error: function() {
                         $('#loading').hide();
                         $('#upload-btn').prop('disabled', false);
@@ -53,58 +56,74 @@
                 });
             });
 
+            function displayAnswers() {
+                var answerList = $('#answer-list');
+                answerList.empty();
 
-          function displayAnswers() {
-              var answerList = $('#answer-list');
-              answerList.empty();
-
-            var reversedAnswers = answers.slice().reverse();
+                var reversedAnswers = answers.slice().reverse();
 
                 reversedAnswers.forEach(function(answer) {
-                  var listItem = $('<li>');
-                  var title = $('<h3>').text(answer.filename);
-                  var summary = $('<pre>').html('<code>' + answer.summary + '</code>');
-                  listItem.append(title, summary);
-                  answerList.append(listItem);
-              });
-          }
+                    var listItem = $('<li>');
+                    // var title = $('<h3>').text(answer.filename);
+                  var title = $('<h3>').text(answer.filename + ' (Model: ' + answer.model + ')'); // Display the model next to the title
+                    var summary = $('<pre>').html('<code>' + answer.summary + '</code>');
+                    listItem.append(title, summary);
+                    answerList.append(listItem);
+                });
+            }
         });
     </script>
 </head>
-  <body>
-      <div class="p-6 mt-8 prose mx-auto lg:prose-xl prose-h1:font-display prose-h2:font-display">
-          <h1>PDF CV Parser Demo</h1>
-          <h2>Use `/upload` for api endpoint.</h2>
-          <!-- <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://3f5f9f5b-df4a-4848-9cad-9b8564532ab7-00-2oxjjqwacwf2z.janeway.replit.dev/upload`</h3> -->
-        <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://cvparser-es1j.onrender.com/upload`</h3> 
-          <br>
-          <hr>
-          <br>
-          <div id="error" class="text-red-500"></div>
-          <form id="upload-form" method="POST" enctype="multipart/form-data">
-              <input type="file" name="pdf" accept=".pdf" class="mb-4">
+<body>
+    <div class="p-6 mt-8 prose mx-auto prose-h1:font-display prose-h2:font-display">
+        <h1>PDF CV Parser Demo</h1>
+        <h3>This is a web demo. Endpoint is on <code>/upload</code> </h3>
+        <!-- <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://cvparser-es1j.onrender.com/upload`</h3> -->
+      <p1>curl example: Process pdf with everything default</p1>
+      <pre><code>curl -X POST -F 'pdf=@./test.pdf' https://cvparser-es1j.onrender.com/upload</code></pre>
+
+      <p1>curl example: Process pdf with custom set prompt and llm model. (llm options: (default)"gpt-3.5-turbo", "gpt-4-turbo-2024-04-09" and "llama-3-8b-instruct"</p1>
+      <pre><code>curl -X POST -F 'pdf=@./test.pdf' -F 'model=gpt-4-turbo-2024-04-09' -F 'magic_prompt=Please summarize the key skills and experience of this candidate.' https://cvparser-es1j.onrender.com/upload</code></pre>
+
+        <hr>
+      
+        <div id="error" class="text-red-500"></div>
+      
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <input type="file" name="pdf" accept=".pdf" class="mb-4">
 
             <br>
             <label for="model-select">Choose a LLM:</label>
-              <select id="model-select" name="model" class="mb-4">
-                  <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
-                  <option value="gpt-4-turbo-2024-04-09">GPT-4 Turbo 2024-04-09</option>
-              </select>
-              <button type="submit" id="upload-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                  Upload & Parse
-              </button>
-          </form>
-          <div id="loading" class="mt-4" style="display: none;">
-              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Loading...</span>
-          </div>
-          <h2 class="mt-8">Output (should be in JSON):</h2>
-          <!-- <div id="summary"></div> -->
+            <select id="model-select" name="model" class="mb-4">
+                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+                <option value="gpt-4-turbo-2024-04-09">GPT-4 Turbo 2024-04-09</option>
+              <option value="llama-3-8b-instruct">Llama 3-8B Instruct</option>
+              <!-- <option value="meta/meta-llama-3-8b-instruct">Meta Llama 3-8B Instruct</option> -->
+
+
+            </select>
+
+            <br>
+            <label for="magic-prompt">Custom Prompt:</label>
+            <textarea id="magic-prompt" name="magic_prompt" rows="4" class="mb-4 w-full">{{ default_magic_prompt }}</textarea>
+
+
+          <br>
+
+
+            <button type="submit" id="upload-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Upload & Parse
+            </button>
+        </form>
+        <div id="loading" class="mt-4" style="display: none;">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading...</span>
+        </div>
         <h2 class="mt-8">Answers:</h2>
         <ul id="answer-list"></ul>
-      </div>
-  </body>
+    </div>
+</body>
 </html>
