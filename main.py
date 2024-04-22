@@ -7,15 +7,16 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
+import contextvars
 
 app = Flask(__name__)
 
 # Set up the OpenAI API key
 # os.environ['OPENAI_API_KEY'] is already set via replit secrets
 
-# Set up the embedding model and vector store
+# Set up the embedding model
 embeddings = OpenAIEmbeddings()
-# vector_store = Chroma(embedding_function=embeddings, persist_directory=".")
+vector_store_var = contextvars.ContextVar('vector_store')
 
 # Read the magic prompt from the file
 with open("prompt.txt", "r") as file:
@@ -56,11 +57,16 @@ def upload_and_process_pdf():
 
       # Create a new vector store for each request
       vector_store = Chroma.from_documents(texts, embeddings)
+      vector_store_var.set(vector_store)
 
       # Set up the question-answering chain with the selected model
-      qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model=selected_model),
-                                       chain_type="stuff",
-                                       retriever=vector_store.as_retriever())
+      # qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model=selected_model),
+      #                                  chain_type="stuff",
+      #                                  retriever=vector_store.as_retriever())
+      qa = RetrievalQA.from_chain_type(
+          llm=ChatOpenAI(model=selected_model),
+          chain_type="stuff",
+          retriever=vector_store_var.get().as_retriever())
 
       # Ask the question and get the answer
       answer = qa.invoke(magic_prompt)
@@ -68,6 +74,9 @@ def upload_and_process_pdf():
       return jsonify({"summary": answer}), 200
     except Exception as e:
       return jsonify({"error": str(e)}), 500
+    finally:
+      # Delete the temporary file
+      os.unlink(temp_file_path)
   else:
     return jsonify({"error":
                     "Invalid file type. Only PDF files are allowed."}), 400

@@ -6,11 +6,22 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+          var answers = [];
             $('#upload-form').submit(function(event) {
                 event.preventDefault();
                 var formData = new FormData(this);
+              
                 var selectedModel = $('#model-select').val();
                 formData.append('model', selectedModel);
+
+              var filename = '';
+              for (var formEntry of formData.entries()) {
+                  if (formEntry[0] === 'pdf') {
+                      filename = formEntry[1].name;
+                      break;
+                  }
+              }
+              
                 $('#loading').show();
                 $('#upload-btn').prop('disabled', true);
                 $.ajax({
@@ -20,13 +31,18 @@
                     processData: false,
                     contentType: false,
                   success: function(response) {
-                      $('#loading').hide();
-                      $('#upload-btn').prop('disabled', false);
-                    if (response.summary.result) {
-                      console.log({result: response.summary.result})
-                    $('#summary').html('<pre><code>' + response.summary.result +                               '</code></pre>');
+                    $('#loading').hide();
+                    $('#upload-btn').prop('disabled', false);
+                      if (response.summary && response.summary.result) {
+                          answers.push({
+
+                            filename,
+                              summary: response.summary.result
+                          });
+                          displayAnswers();
                       } else if (response.error) {
-                          $('#error').text(response.error);
+                        $('#error').text(response.error);
+
                       }
                   },
                     error: function() {
@@ -36,14 +52,31 @@
                     }
                 });
             });
+
+
+          function displayAnswers() {
+              var answerList = $('#answer-list');
+              answerList.empty();
+
+            var reversedAnswers = answers.slice().reverse();
+
+                reversedAnswers.forEach(function(answer) {
+                  var listItem = $('<li>');
+                  var title = $('<h3>').text(answer.filename);
+                  var summary = $('<pre>').html('<code>' + answer.summary + '</code>');
+                  listItem.append(title, summary);
+                  answerList.append(listItem);
+              });
+          }
         });
     </script>
 </head>
   <body>
-      <div class="prose">
+      <div class="p-6 mt-8 prose mx-auto lg:prose-xl prose-h1:font-display prose-h2:font-display">
           <h1>PDF CV Parser Demo</h1>
           <h2>Use `/upload` for api endpoint.</h2>
-          <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://3f5f9f5b-df4a-4848-9cad-9b8564532ab7-00-2oxjjqwacwf2z.janeway.replit.dev/upload`</h3>
+          <!-- <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://3f5f9f5b-df4a-4848-9cad-9b8564532ab7-00-2oxjjqwacwf2z.janeway.replit.dev/upload`</h3> -->
+        <h3>curl example: `curl -X POST -F 'pdf=@./test.pdf' https://cvparser-es1j.onrender.com/upload`</h3> 
           <br>
           <hr>
           <br>
@@ -69,7 +102,9 @@
               <span>Loading...</span>
           </div>
           <h2 class="mt-8">Output (should be in JSON):</h2>
-          <div id="summary"></div>
+          <!-- <div id="summary"></div> -->
+        <h2 class="mt-8">Answers:</h2>
+        <ul id="answer-list"></ul>
       </div>
   </body>
 </html>
