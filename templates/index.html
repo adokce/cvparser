@@ -25,6 +25,8 @@
                     }
                 }
 
+              var startTime = new Date().getTime(); // Record the start time
+
                 $('#loading').show();
                 $('#upload-btn').prop('disabled', true);
                 $.ajax({
@@ -34,6 +36,9 @@
                     processData: false,
                     contentType: false,
                     success: function(response) {
+                      var endTime = new Date().getTime(); // Record the end time
+                      var responseTime = endTime - startTime; // Calculate the response time
+
                         $('#loading').hide();
                         $('#upload-btn').prop('disabled', false);
                         if (response.summary && response.summary.result) {
@@ -41,7 +46,8 @@
                             answers.push({
                                 filename,
                                 summary: response.summary.result,
-                                model: selectedModel 
+                                model: selectedModel,
+                                responseTime: responseTime
                             });
                             displayAnswers();
                         } else if (response.error) {
@@ -64,13 +70,17 @@
 
                 reversedAnswers.forEach(function(answer) {
                     var listItem = $('<li>');
-                    // var title = $('<h3>').text(answer.filename);
-                  var title = $('<h3>').text(answer.filename + ' (Model: ' + answer.model + ')'); // Display the model next to the title
+                    var title = $('<h3>').text(answer.filename + ' (Model: ' + answer.model + ', Time: ' + formatResponseTime(answer.responseTime) + ')'); // Display the model and response time next to the title
                     var summary = $('<pre>').html('<code>' + answer.summary + '</code>');
                     listItem.append(title, summary);
                     answerList.append(listItem);
                 });
             }
+
+          function formatResponseTime(milliseconds) {
+              var seconds = (milliseconds / 1000).toFixed(1);
+              return seconds + 's'; // Format the response time as "seconds + s"
+          }
         });
     </script>
 </head>
@@ -93,7 +103,7 @@
             <input type="file" name="pdf" accept=".pdf" class="mb-4">
 
             <br>
-            <label for="model-select">Choose a LLM:</label>
+            <label for="model-select">Choose an LLM:</label>
             <select id="model-select" name="model" class="mb-4">
                 <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
                 <option value="gpt-4-turbo-2024-04-09">GPT-4 Turbo 2024-04-09</option>
