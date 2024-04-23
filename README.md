@@ -24,7 +24,7 @@ ProcessQuery --> Display[("Display Answer to User")]
   - Options:
     - `gpt-3.5-turbo`
     - `gpt-4-turbo-2024-04-09`
-    - `meta/meta-llama-3-8b-instruct`
+    - `llama-3-8b-instruct`
 - **`magic_prompt`** (optional, string): A query or command describing what to do with the text. Default is extracted from `prompt.txt`.
 
 
